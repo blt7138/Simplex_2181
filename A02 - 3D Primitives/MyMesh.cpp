@@ -1,4 +1,5 @@
 #include "MyMesh.h"
+
 void MyMesh::Init(void)
 {
 	m_bBinded = false;
@@ -275,8 +276,31 @@ void MyMesh::GenerateCone(float a_fRadius, float a_fHeight, int a_nSubdivisions,
 	Release();
 	Init();
 
-	// Replace this with your code
-	GenerateCube(a_fRadius * 2.0f, a_v3Color);
+	//Generate the points
+	vector3 pointA(0, a_fHeight / 2, 0); //Tip of the cone
+	vector3 pointB(0, -a_fHeight / 2, 0); //Center of the base
+	//Store the points of the base
+	std::vector<vector3> points;
+	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
+	{
+		vector3 newPoint(a_fRadius * (float)cos(2 * PI / a_nSubdivisions * i), -a_fHeight / 2, a_fRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Calculate each point
+		points.push_back(newPoint);
+	}
+
+	//Create tris based on the stored points
+	for (size_t i = 0; i < points.size(); i++)
+	{
+		if (i == points.size() - 1)
+		{
+			AddTri(points[i + 1 - points.size()], pointA, points[i]);
+			AddTri(pointB, points[i + 1 - points.size()], points[i]);
+		}
+		else
+		{
+			AddTri(points[i + 1], pointA, points[i]);
+			AddTri(pointB, points[i + 1], points[i]);
+		}
+	}
 	// -------------------------------
 
 	// Adding information about color
@@ -299,8 +323,54 @@ void MyMesh::GenerateCylinder(float a_fRadius, float a_fHeight, int a_nSubdivisi
 	Release();
 	Init();
 
-	// Replace this with your code
-	GenerateCube(a_fRadius * 2.0f, a_v3Color);
+	//Generate the points
+	vector3 pointA(0, a_fHeight / 2, 0); //Top center
+	vector3 pointB(0, -a_fHeight / 2, 0); //Bottom center
+	//Store points on the top base
+	std::vector<vector3> pointsTop;
+	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
+	{
+		vector3 newPoint(a_fRadius * (float)cos(2 * PI / a_nSubdivisions * i), a_fHeight / 2, a_fRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Calculate each point
+		pointsTop.push_back(newPoint);
+	}
+
+	//Store points on the bottom base
+	std::vector<vector3> pointsBottom;
+	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
+	{
+		vector3 newPoint(a_fRadius * (float)cos(2 * PI / a_nSubdivisions * i), -a_fHeight / 2, a_fRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Calculate each point
+		pointsBottom.push_back(newPoint);
+	}
+
+	//Create the bases of tris using the stored points
+	for (size_t i = 0; i < pointsTop.size(); i++)
+	{
+		if (i > pointsTop.size() - 2)
+		{
+			AddTri(pointsTop[i + 1 - pointsTop.size()], pointsTop[i], pointA); //Creates top
+			AddTri(pointsBottom[i], pointsBottom[i + 1 - pointsBottom.size()], pointB); //Creates bottom
+		}
+		else
+		{
+			AddTri(pointsTop[i + 1], pointsTop[i], pointA); //Creates top
+			AddTri(pointsBottom[i], pointsBottom[i + 1], pointB); //Creates bottom
+		}
+	}
+
+	//Create the sides of quads using the stored points
+	for (size_t i = 0; i < pointsTop.size(); i++)
+	{
+		if (i == pointsTop.size() - 1)
+		{
+			AddQuad(pointsTop[i], pointsTop[i + 1 - pointsTop.size()], pointsBottom[i], pointsBottom[i + 1 - pointsTop.size()]);
+		}
+		else
+		{
+			AddQuad(pointsTop[i], pointsTop[i + 1], pointsBottom[i], pointsBottom[i + 1]);
+		}
+	}
+
+
 	// -------------------------------
 
 	// Adding information about color
@@ -329,9 +399,88 @@ void MyMesh::GenerateTube(float a_fOuterRadius, float a_fInnerRadius, float a_fH
 	Release();
 	Init();
 
-	// Replace this with your code
-	GenerateCube(a_fOuterRadius * 2.0f, a_v3Color);
-	// -------------------------------
+	//Generate the points
+	vector3 pointA(0, a_fHeight / 2, 0); //Top center, not actually used in shape
+	vector3 pointB(0, -a_fHeight / 2, 0); //Bottom center, not actually used in shape
+	//Store points on the top base
+	std::vector<vector3> pointsTopOuter;
+	std::vector<vector3> pointsTopInner;
+
+	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
+	{
+		vector3 newPoint(a_fOuterRadius * (float)cos(2 * PI / a_nSubdivisions * i), a_fHeight / 2, a_fOuterRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Outer top
+		pointsTopOuter.push_back(newPoint);
+
+		vector3 newPoint2(a_fInnerRadius * (float)cos(2 * PI / a_nSubdivisions * i), a_fHeight / 2, a_fInnerRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Inner top
+		pointsTopInner.push_back(newPoint2);
+	}
+
+	//Store points on the bottom base
+	std::vector<vector3> pointsBottomOuter;
+	std::vector<vector3> pointsBottomInner;
+
+	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
+	{
+		vector3 newPoint(a_fOuterRadius * (float)cos(2 * PI / a_nSubdivisions * i), -a_fHeight / 2, a_fOuterRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Outer bottom
+		pointsBottomOuter.push_back(newPoint);
+
+		vector3 newPoint2(a_fInnerRadius * (float)cos(2 * PI / a_nSubdivisions * i), -a_fHeight / 2, a_fInnerRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Inner bottom
+		pointsBottomInner.push_back(newPoint2);
+	}
+
+	//Create the outer side of quads using the stored points
+	for (size_t i = 0; i < pointsTopOuter.size(); i++)
+	{
+		if (i == pointsTopOuter.size() - 1)
+		{
+			AddQuad(pointsTopOuter[i], pointsTopOuter[i + 1 - pointsTopOuter.size()], pointsBottomOuter[i], pointsBottomOuter[i + 1 - pointsTopOuter.size()]);
+		}
+		else
+		{
+			AddQuad(pointsTopOuter[i], pointsTopOuter[i + 1], pointsBottomOuter[i], pointsBottomOuter[i + 1]);
+		}
+	}
+
+	//Create the inner side of quads using the stored points
+	for (size_t i = 0; i < pointsTopInner.size(); i++)
+	{
+		if (i == pointsTopInner.size() - 1)
+		{
+			AddQuad(pointsBottomInner[i], pointsBottomInner[i + 1 - pointsTopInner.size()], pointsTopInner[i], pointsTopInner[i + 1 - pointsTopInner.size()]);
+		}
+		else
+		{
+			AddQuad(pointsBottomInner[i], pointsBottomInner[i + 1], pointsTopInner[i], pointsTopInner[i + 1]);
+		}
+	}
+
+	//Create the upper side of quads using the stored points
+	for (size_t i = 0; i < pointsTopOuter.size(); i++)
+	{
+		if (i == pointsTopOuter.size() - 1)
+		{
+			AddQuad(pointsTopInner[i], pointsTopInner[i + 1 - pointsTopOuter.size()], pointsTopOuter[i], pointsTopOuter[i + 1 - pointsTopOuter.size()]);
+		}
+		else
+		{
+			AddQuad(pointsTopInner[i], pointsTopInner[i + 1], pointsTopOuter[i], pointsTopOuter[i + 1]);
+		}
+	}
+
+	//Create the lower side of quads using the stored points
+	for (size_t i = 0; i < pointsTopOuter.size(); i++)
+	{
+		if (i == pointsBottomOuter.size() - 1)
+		{
+			AddQuad(pointsBottomOuter[i], pointsBottomOuter[i + 1 - pointsBottomOuter.size()], pointsBottomInner[i], pointsBottomInner[i + 1 - pointsBottomOuter.size()]);
+		}
+		else
+		{
+			AddQuad(pointsBottomOuter[i], pointsBottomOuter[i + 1], pointsBottomInner[i], pointsBottomInner[i + 1]);
+		}
+	}
+
+	//-----------------------------
 
 	// Adding information about color
 	CompleteMesh(a_v3Color);
@@ -382,12 +531,38 @@ void MyMesh::GenerateSphere(float a_fRadius, int a_nSubdivisions, vector3 a_v3Co
 	}
 	if (a_nSubdivisions > 6)
 		a_nSubdivisions = 6;
+	std::cout << "Sphere division num: " << a_nSubdivisions << std::endl;
 
 	Release();
 	Init();
 
-	// Replace this with your code
-	GenerateCube(a_fRadius * 2.0f, a_v3Color);
+	
+	//Create the points
+	vector3 pointA(0, a_fRadius, 0); //Top point
+	vector3 pointB(0, a_fRadius, 0); //Bottom point
+	//Store the points in rows of points
+	std::vector<std::vector<vector3>> rows;
+	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
+	{
+		std::vector<vector3> points;
+		for (size_t j = 1; j < a_nSubdivisions + 1; j++)
+		{
+			vector3 newPoint(a_fRadius * sqrt(1 - pow(cos(2 * PI / a_nSubdivisions * j), 2)) * cos(2 * PI / a_nSubdivisions * i), //x
+				a_fRadius * sqrt(1 - pow(cos(2 * PI / a_nSubdivisions * j), 2)) * sin(2 * PI / a_nSubdivisions * i), //y
+				cos(2 * PI / a_nSubdivisions * j)); //z
+			points.push_back(newPoint);
+		}
+		rows.push_back(points);
+	}
+
+	//??
+	for (size_t i = 0; i < rows.size() - 1; i++) //row
+	{
+		for (size_t j = 0; j < rows[i].size() - 1; j++) //points
+		{
+			AddQuad(rows[i + 1][j], rows[i + 1][j + 1], rows[i][j], rows[i][j + 1]);
+		}
+	}
 	// -------------------------------
 
 	// Adding information about color
