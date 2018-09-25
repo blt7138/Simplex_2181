@@ -514,8 +514,29 @@ void MyMesh::GenerateTorus(float a_fOuterRadius, float a_fInnerRadius, int a_nSu
 	Release();
 	Init();
 
-	// Replace this with your code
-	GenerateCube(a_fOuterRadius * 2.0f, a_v3Color);
+	//Store the points in rows of points
+	std::vector<std::vector<vector3>> rows;
+	double tubeRadius = (a_fOuterRadius - a_fInnerRadius) / 2;
+	for (size_t i = 1; i < (a_nSubdivisionsA + 2); i++)
+	{
+		std::vector<vector3> points;
+		for (size_t j = 1; j < (a_nSubdivisionsB + 2); j++)
+		{
+			vector3 newPoint(((a_fOuterRadius + a_fInnerRadius) / 2 + tubeRadius * cos(2 * PI / a_nSubdivisionsA * i)) * cos(2 * PI / a_nSubdivisionsB * j), //x
+				((a_fOuterRadius + a_fInnerRadius) / 2 + tubeRadius * cos(2 * PI / a_nSubdivisionsA * i)) * sin(2 * PI / a_nSubdivisionsB * j), //y
+				tubeRadius * sin(2 * PI / a_nSubdivisionsA * i)); //z
+			points.push_back(newPoint);
+		}
+		rows.push_back(points);
+	}
+
+	for (size_t i = 0; i < rows.size() - 1; i++) //for each row connect to the one beneath
+	{
+		for (size_t j = 0; j < rows[i].size() - 1; j++) //for each point in each row
+		{
+			AddQuad(rows[i][j], rows[i][j + 1], rows[i + 1][j], rows[i + 1][j + 1]);
+		}
+	}
 	// -------------------------------
 
 	// Adding information about color
