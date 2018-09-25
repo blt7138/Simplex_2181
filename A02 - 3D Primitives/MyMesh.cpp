@@ -283,7 +283,7 @@ void MyMesh::GenerateCone(float a_fRadius, float a_fHeight, int a_nSubdivisions,
 	std::vector<vector3> points;
 	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
 	{
-		vector3 newPoint(a_fRadius * (float)cos(2 * PI / a_nSubdivisions * i), -a_fHeight / 2, a_fRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Calculate each point
+		vector3 newPoint(a_fRadius * cos(2 * PI / a_nSubdivisions * i), -a_fHeight / 2, a_fRadius * sin(2 * PI / a_nSubdivisions * i)); //Calculate each point
 		points.push_back(newPoint);
 	}
 
@@ -292,14 +292,18 @@ void MyMesh::GenerateCone(float a_fRadius, float a_fHeight, int a_nSubdivisions,
 	{
 		if (i == points.size() - 1)
 		{
-			AddTri(points[i + 1 - points.size()], pointA, points[i]);
-			AddTri(pointB, points[i + 1 - points.size()], points[i]);
+			AddTri(pointA, points[i + 1 - points.size()], points[i]); //Creates the triangles surrounding the base
+			AddTri(points[i + 1 - points.size()], pointB, points[i]); //Creates the base
 		}
 		else
 		{
-			AddTri(points[i + 1], pointA, points[i]);
-			AddTri(pointB, points[i + 1], points[i]);
+			AddTri(pointA, points[i + 1], points[i]);
+			AddTri(points[i + 1], pointB, points[i]);
 		}
+
+
+		//AddQuad(pointsTop[i], pointsTop[i + 1], pointsBottom[i], pointsBottom[i + 1]);
+		//
 	}
 	// -------------------------------
 
@@ -330,7 +334,7 @@ void MyMesh::GenerateCylinder(float a_fRadius, float a_fHeight, int a_nSubdivisi
 	std::vector<vector3> pointsTop;
 	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
 	{
-		vector3 newPoint(a_fRadius * (float)cos(2 * PI / a_nSubdivisions * i), a_fHeight / 2, a_fRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Calculate each point
+		vector3 newPoint(a_fRadius * (float)cos(2 * PI / a_nSubdivisions * i), a_fHeight / 2, a_fRadius * (float)sin(2 * PI / a_nSubdivisions * i));
 		pointsTop.push_back(newPoint);
 	}
 
@@ -338,7 +342,7 @@ void MyMesh::GenerateCylinder(float a_fRadius, float a_fHeight, int a_nSubdivisi
 	std::vector<vector3> pointsBottom;
 	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
 	{
-		vector3 newPoint(a_fRadius * (float)cos(2 * PI / a_nSubdivisions * i), -a_fHeight / 2, a_fRadius * (float)sin(2 * PI / a_nSubdivisions * i)); //Calculate each point
+		vector3 newPoint(a_fRadius * (float)cos(2 * PI / a_nSubdivisions * i), -a_fHeight / 2, a_fRadius * (float)sin(2 * PI / a_nSubdivisions * i));
 		pointsBottom.push_back(newPoint);
 	}
 
@@ -531,7 +535,6 @@ void MyMesh::GenerateSphere(float a_fRadius, int a_nSubdivisions, vector3 a_v3Co
 	}
 	if (a_nSubdivisions > 6)
 		a_nSubdivisions = 6;
-	std::cout << "Sphere division num: " << a_nSubdivisions << std::endl;
 
 	Release();
 	Init();
@@ -542,23 +545,24 @@ void MyMesh::GenerateSphere(float a_fRadius, int a_nSubdivisions, vector3 a_v3Co
 	vector3 pointB(0, a_fRadius, 0); //Bottom point
 	//Store the points in rows of points
 	std::vector<std::vector<vector3>> rows;
-	for (size_t i = 1; i < a_nSubdivisions + 1; i++)
+	int factor = 4;
+	for (size_t i = 1; i < (a_nSubdivisions + 1) * factor; i++) //i is constant for each row, keeps z constant
 	{
 		std::vector<vector3> points;
-		for (size_t j = 1; j < a_nSubdivisions + 1; j++)
+		for (size_t j = 1; j < (a_nSubdivisions + 1) * factor; j++)
 		{
-			vector3 newPoint(a_fRadius * sqrt(1 - pow(cos(2 * PI / a_nSubdivisions * j), 2)) * cos(2 * PI / a_nSubdivisions * i), //x
-				a_fRadius * sqrt(1 - pow(cos(2 * PI / a_nSubdivisions * j), 2)) * sin(2 * PI / a_nSubdivisions * i), //y
-				cos(2 * PI / a_nSubdivisions * j)); //z
+			vector3 newPoint(a_fRadius * sin(2 * PI / a_nSubdivisions * i / factor) * cos(2 * PI / a_nSubdivisions * j / factor), //x
+				a_fRadius * sin(2 * PI / a_nSubdivisions * i / factor) * sin(2 * PI / a_nSubdivisions * j / factor), //y
+				a_fRadius * cos(2 * PI / a_nSubdivisions * i / factor)); //z
+			
 			points.push_back(newPoint);
 		}
 		rows.push_back(points);
 	}
 
-	//??
-	for (size_t i = 0; i < rows.size() - 1; i++) //row
+	for (size_t i = 0; i < rows.size() - 1; i++) //for each row connect to the one beneath
 	{
-		for (size_t j = 0; j < rows[i].size() - 1; j++) //points
+		for (size_t j = 0; j < rows[i].size() - 1; j++) //for each point in each row
 		{
 			AddQuad(rows[i + 1][j], rows[i + 1][j + 1], rows[i][j], rows[i][j + 1]);
 		}
