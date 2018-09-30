@@ -59,7 +59,28 @@ void Application::Display(void)
 
 
 	//your code goes here
-	v3CurrentPos = vector3(0.0f, 0.0f, 0.0f);
+	static float percent = 0.0; //how far between point 1 and 2
+	static int point1Index = 0;
+	static int point2Index = 1;
+	v3CurrentPos = glm::lerp(m_stopsList[point1Index], m_stopsList[point2Index], percent);
+	if (percent < 1.0)
+	{
+		percent += 0.01;
+	}
+	else //made it all the way, go to the next point
+	{
+		point1Index++;
+		point2Index++;
+		percent = 0;
+		if (point1Index == m_stopsList.size()) //end of the vector, loop to the beginning
+		{
+			point1Index = 0;
+		}
+		if (point2Index == m_stopsList.size())
+		{
+			point2Index = 0;
+		}
+	}
 	//-------------------
 	
 
