@@ -1,4 +1,11 @@
 #include "AppClass.h"
+
+std::vector<std::vector<vector3>> stopListList; //lists of lists of vertices for each orbit
+std::vector<float> timers; //timers for each orbit
+std::vector<float> percents; //percents for each orbit
+std::vector<uint> routes; //current route for each orbit
+static uint uClock; //universal clock
+
 void Application::InitVariables(void)
 {
 	//Change this to your name and email
@@ -23,6 +30,7 @@ void Application::InitVariables(void)
 		m_uOrbits = 7;
 
 	float fSize = 1.0f; //initial size of orbits
+	float fRadius = 0.95f; //center between initial outer and inner radi
 
 	//creating a color using the spectrum 
 	uint uColor = 650; //650 is Red
@@ -31,12 +39,24 @@ void Application::InitVariables(void)
 	/*
 		This part will create the orbits, it start at 3 because that is the minimum subdivisions a torus can have
 	*/
+	uClock = m_pSystem->GenClock(); // start the timer
 	uint uSides = 3; //start with the minimal 3 sides
 	for (uint i = uSides; i < m_uOrbits + uSides; i++)
 	{
 		vector3 v3Color = WaveLengthToRGB(uColor); //calculate color based on wavelength
 		m_shapeList.push_back(m_pMeshMngr->GenerateTorus(fSize, fSize - 0.1f, 3, i, v3Color)); //generate a custom torus and add it to the meshmanager
+		std::vector<vector3> stopList;
+		for (size_t j = 0; j < i; j++)
+		{
+			vector3 newPoint(fRadius * (float)cos(2 * PI / i * j), fRadius * (float)sin(2 * PI / i * j), 0); //Calculate each point
+			stopList.push_back(newPoint);
+		}
+		stopListList.push_back(stopList);
+		timers.push_back(0);
+		routes.push_back(0);
+		percents.push_back(0);
 		fSize += 0.5f; //increment the size for the next orbit
+		fRadius += 0.5f;
 		uColor -= static_cast<uint>(decrements); //decrease the wavelength
 	}
 }
@@ -59,19 +79,33 @@ void Application::Display(void)
 	matrix4 m4View = m_pCameraMngr->GetViewMatrix(); //view Matrix
 	matrix4 m4Projection = m_pCameraMngr->GetProjectionMatrix(); //Projection Matrix
 	matrix4 m4Offset = IDENTITY_M4; //offset of the orbits, starts as the global coordinate system
-	/*
-		The following offset will orient the orbits as in the demo, start without it to make your life easier.
-	*/
-	//m4Offset = glm::rotate(IDENTITY_M4, 1.5708f, AXIS_Z);
+	m4Offset = glm::rotate(IDENTITY_M4, 1.5708f, AXIS_Z);
 
 	// draw a shapes
+	float timeElapsed = m_pSystem->GetDeltaTime(uClock);
 	for (uint i = 0; i < m_uOrbits; ++i)
 	{
 		m_pMeshMngr->AddMeshToRenderList(m_shapeList[i], glm::rotate(m4Offset, 1.5708f, AXIS_X));
 
+		//calculate path and distance on the route
+		vector3 startPoint;
+		vector3 nextPoint;
+		startPoint = stopListList[i][routes[i]];
+		nextPoint = stopListList[i][(routes[i] + 1) % stopListList[i].size()];
+		float fTimeBetweenStops = 2.0;
+		timers[i] += timeElapsed;
+		percents[i] = MapValue(timers[i], 0.0f, fTimeBetweenStops, 0.0f, 1.0f);
+
 		//calculate the current position
-		vector3 v3CurrentPos = ZERO_V3;
+		vector3 v3CurrentPos = glm::lerp(startPoint, nextPoint, percents[i]);
 		matrix4 m4Model = glm::translate(m4Offset, v3CurrentPos);
+
+		if (percents[i] >= 1.0f)
+		{
+			routes[i]++;
+			timers[i] = m_pSystem->GetDeltaTime(uClock);
+			routes[i] %= stopListList[i].size();
+		}
 
 		//draw spheres
 		m_pMeshMngr->AddSphereToRenderList(m4Model * glm::scale(vector3(0.1)), C_WHITE);

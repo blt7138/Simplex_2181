@@ -1,75 +1,14 @@
 #include "AppClass.h"
-std::vector<MyMesh*> cubes; //MAKE SURE YOU DELETE IN RELEASE
-std::vector<vector3> positions;
-float i = 0;
 void Application::InitVariables(void)
 {
+	m_pCameraMngr->SetPositionTargetAndUpward(AXIS_Z * 5, ZERO_V3, AXIS_Y);
 	//Make MyMesh object
-	for (size_t i = 0; i < 46; i++)
-	{
-		m_pMesh = new MyMesh();
-		m_pMesh->GenerateCube(1.0f, C_BLACK);
-		cubes.push_back(m_pMesh);
-	}
-	
-	//variables to help center the alien
-	float xOffset = -7.0f;
-	float yOffset = -3.0f;
+	m_pMesh = new MyMesh();
+	m_pMesh->GenerateCone(1.0f, 2.0f, 3, C_RED);
 
-	//Bottom row (row 0)
-	positions.push_back(vector3(3.0f + xOffset, 0.0f + yOffset, 0.0f));
-	positions.push_back(vector3(4.0f + xOffset, 0.0f + yOffset, 0.0f));
-	positions.push_back(vector3(6.0f + xOffset, 0.0f + yOffset, 0.0f));
-	positions.push_back(vector3(7.0f + xOffset, 0.0f + yOffset, 0.0f));
-
-	//Row 1
-	positions.push_back(vector3(0.0f + xOffset, 1.0f + yOffset, 0.0f));
-	positions.push_back(vector3(2.0f + xOffset, 1.0f + yOffset, 0.0f));
-	positions.push_back(vector3(8.0f + xOffset, 1.0f + yOffset, 0.0f));
-	positions.push_back(vector3(10.0f + xOffset, 1.0f + yOffset, 0.0f));
-
-	//Row 2
-	for (float i = 0.0f; i < 11.0f; i++) //Row 2 is nearly full, so a for loop is easier
-	{
-		if (i != 1.0f && i != 9.0f) //Exclude the two missing boxes
-		{
-			positions.push_back(vector3(i + xOffset, 2.0f + yOffset, 0.0f));
-		}
-	}
-
-	//Row 3
-	for (float i = 0.0f; i < 11.0f; i++) //The entire row is full
-	{
-		positions.push_back(vector3(i + xOffset, 3.0f + yOffset, 0.0f));
-	}
-
-	//Row 4
-	for (float i = 0.0f; i < 11.0f; i++)
-	{
-		if (i != 0.0f && i != 3.0f && i != 7.0 && i != 10.0)
-		{
-			positions.push_back(vector3(i + xOffset, 4.0f + yOffset, 0.0f));
-		}
-	}
-
-	//Row 5
-	for (float i = 0; i < 11.0f; i++)
-	{
-		if (i != 0.0f && i != 1.0f && i != 9.0 && i != 10.0)
-		{
-			positions.push_back(vector3(i + xOffset, 5.0f + yOffset, 0.0f));
-		}
-	}
-
-	//Row 6
-	positions.push_back(vector3(3.0f + xOffset, 6.0f + yOffset, 0.0f));
-	positions.push_back(vector3(7.0f + xOffset, 6.0f + yOffset, 0.0f));
-
-	//Row 7
-	positions.push_back(vector3(2.0f + xOffset, 7.0f + yOffset, 0.0f));
-	positions.push_back(vector3(8.0f + xOffset, 7.0f + yOffset, 0.0f));
-			
-	m_pCameraMngr->SetPositionTargetAndUpward(vector3(0.0f, 0.0f, 10.0f), vector3(0.0f), AXIS_Y);
+	//Make MyMesh object
+	m_pMesh1 = new MyMesh();
+	m_pMesh1->GenerateCube(1.0f, C_WHITE);
 }
 void Application::Update(void)
 {
@@ -86,14 +25,58 @@ void Application::Display(void)
 {
 	// Clear the screen
 	ClearScreen();
-	int vectorIndex = 0;
-	for (MyMesh* mesh : cubes)
+	static DWORD DStartingTime = GetTickCount();
+	DWORD DCurrentTime = GetTickCount();
+	DWORD DDelta = DCurrentTime - DStartingTime;
+	float fTimer = static_cast<float>(DDelta / 1000.0f);
+	std::cout << fTimer <<std::endl;
+
+	float fTotalTime = 5.5f;
+
+	float fPercent = MapValue(fTimer, 0.0f, fTotalTime, 0.0f, 1.0f);
+
+	static vector3 v3InitialPoint(0.0f, 0.0f, 0.0f);
+	static vector3 v3EndPoint(5.0f, 0.0f, 0.0f);
+
+	static float fStart = 0.0f;
+	static float fEnd = 180.0f;
+
+	float fCurrent = glm::lerp(fStart, fEnd, fPercent);
+	vector3 v3Position = glm::lerp(v3InitialPoint, v3EndPoint, fPercent);
+
+	matrix4 m4Rotation = glm::rotate(IDENTITY_M4, glm::radians(fCurrent), AXIS_Z);
+	matrix4 m4Position = glm::translate(m4Rotation, v3EndPoint);
+	
+	//New matrix transformation
+	matrix4 m4RotX= glm::rotate(IDENTITY_M4, glm::radians(m_v3Angles.x), AXIS_X);
+	matrix4 m4RotY = glm::rotate(IDENTITY_M4, glm::radians(m_v3Angles.y), AXIS_Y);
+	matrix4 m4RotZ = glm::rotate(IDENTITY_M4, glm::radians(m_v3Angles.z), AXIS_Z);
+
+	matrix4 m4Transform = m4RotX * m4RotY * m4RotZ;
+	glm::quat q1;
+	quaternion q2 = glm::angleAxis(glm::radians(1.0f), AXIS_Z);
+	static quaternion q3 = q1 * q2;
+	q3 = q3 * q2;
+
+	//Render in the new position
+	//m_pMesh->Render(m_pCameraMngr->GetProjectionMatrix(), m_pCameraMngr->GetViewMatrix(), m4Transform);
+	m_pMesh->Render(m_pCameraMngr->GetProjectionMatrix(), m_pCameraMngr->GetViewMatrix(), ToMatrix4(q3));
+
+	//Change the axis
+	//m_v3Angles = vector3(fTimer * 45.0f);
+
+	/*
+	if (fPercent >= 1.0f)
 	{
-		matrix4 m4Translation = glm::translate(vector3(i, 0.0f, 0.0f) + positions[vectorIndex]); //adding a position from the position vector moves a box to each of those spaces
-		mesh->Render(m_pCameraMngr->GetProjectionMatrix(), m_pCameraMngr->GetViewMatrix(), m4Translation);
-		i += 0.0001;
-		vectorIndex++;
-	}	
+		DStartingTime = GetTickCount();
+		//std::swap(v3InitialPoint, v3EndPoint);
+		std::swap(fStart, fEnd);
+		//fPercent = 0.00f;
+	}
+	fPercent += 0.01f;
+	*/
+
+	//m_pMesh1->Render(m_pCameraMngr->GetProjectionMatrix(), m_pCameraMngr->GetViewMatrix(), glm::translate(vector3( 3.0f, 0.0f, 0.0f)));
 		
 	// draw a skybox
 	m_pMeshMngr->AddSkyboxToRenderList();
@@ -112,15 +95,12 @@ void Application::Display(void)
 }
 void Application::Release(void)
 {
-	for (MyMesh* mesh : cubes)
+	if (m_pMesh != nullptr)
 	{
-		if (mesh != nullptr)
-		{
-			delete mesh;
-			mesh = nullptr;
-		}
+		delete m_pMesh;
+		m_pMesh = nullptr;
 	}
-	//SafeDelete(m_pMesh1);
+	SafeDelete(m_pMesh1);
 	//release GUI
 	ShutdownGUI();
 }
