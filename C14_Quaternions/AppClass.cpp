@@ -10,6 +10,9 @@ void Application::InitVariables(void)
 
 	//Load a model
 	m_pModel->Load("Minecraft\\Steve.obj");
+
+	m_pMesh = new MyMesh();
+	m_pMesh->GenerateCube(2.0f, C_RED);
 }
 void Application::Update(void)
 {
@@ -31,8 +34,8 @@ void Application::Update(void)
 	if (false)
 	{
 		quaternion q1;
-		quaternion q2 = glm::angleAxis(glm::radians(359.9f), vector3(0.0f, 0.0f, 1.0f));
-		float fPercentage = MapValue(fTimer, 0.0f, 5.0f, 0.0f, 1.0f);
+		quaternion q2 = glm::angleAxis(glm::radians(359.90f), vector3(0.0f, 0.0f, 1.0f));
+		float fPercentage = MapValue(fTimer, 0.0f, 2.0f, 0.0f, 1.0f);
 		quaternion qSLERP = glm::mix(q1, q2, fPercentage);
 		m_m4Steve = glm::toMat4(qSLERP);
 	}
@@ -60,12 +63,35 @@ void Application::Update(void)
 
 	//Send the model to render list
 	m_pModel->AddToRenderList();
+
 }
 void Application::Display(void)
 {
 	// Clear the screen
 	ClearScreen();
+
+	matrix4 m4View = m_pCameraMngr->GetViewMatrix();
+	matrix4 m4Projection = m_pCameraMngr->GetProjectionMatrix();
+
+	//m4Projection = glm::ortho(0.0f, 2.0f, 0.0f, 2.0f, 0.01f, 19.0f);
+	float fFOV = 45.0f + (m_v3Orientation.x * 0.01);
+	float fAspect = static_cast<float>(m_pSystem->GetWindowWidth()) / 
+		static_cast<float>(m_pSystem->GetWindowHeight());
+	float fNear = 0.01f;
+	float fFar = 20.0f;
+
+	m4Projection = glm::perspective(fFOV, fAspect, fNear, fFar);
+
+	vector3 v3Position = vector3(0.0f, 0.0f, 7.0f);
+	vector3 v3Target;
+	vector3 v3Up = vector3(0.0f, 1.0f, 0.0f);
 	
+	m4View = glm::lookAt(v3Position, v3Target, v3Up);
+
+	matrix4 m4Model = glm::translate(m_v3Orientation);
+
+	//m_pMesh->Render(m4Projection, m4View, m4Model);
+
 	// draw a skybox
 	m_pMeshMngr->AddSkyboxToRenderList();
 
@@ -85,6 +111,8 @@ void Application::Release(void)
 {
 	//release model
 	SafeDelete(m_pModel);
+	//release mesh
+	SafeDelete(m_pMesh);
 
 	//release GUI
 	ShutdownGUI();
