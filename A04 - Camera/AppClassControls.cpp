@@ -1,5 +1,6 @@
 #include "AppClass.h"
 using namespace Simplex;
+
 //Mouse
 void Application::ProcessMouseMovement(sf::Event a_event)
 {
@@ -379,7 +380,7 @@ void Application::ProcessKeyboard(void)
 	for discreet on/off use ProcessKeyboardPressed/Released
 	*/
 #pragma region Camera Position
-	float fSpeed = 0.1f;
+	float fSpeed = 1.0f;
 	float fMultiplier = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) ||
 		sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
 
@@ -390,6 +391,14 @@ void Application::ProcessKeyboard(void)
 		m_pCamera->MoveForward(fSpeed);
 	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
 		m_pCamera->MoveForward(-fSpeed);
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
+		m_pCamera->MoveVertical(fSpeed);
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q))
+		m_pCamera->MoveVertical(-fSpeed);
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+		m_pCamera->MoveSideways(fSpeed);
+	else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+		m_pCamera->MoveSideways(-fSpeed);
 #pragma endregion
 }
 //Joystick
@@ -415,8 +424,54 @@ void Application::ProcessJoystick(void)
 		fVerticalSpeed *= 3.0f;
 	}
 #pragma endregion
-#pragma region Camera Orientation
+#pragma region Camera Orientation 
+	float fSpeed = 1.0f;
+	if (fMultiplier)
+		fSpeed *= 5.0f;
 	//Change the Yaw and the Pitch of the camera
+	//Stolen from above
+	UINT	MouseX, MouseY;		// Coordinates for the mouse
+	UINT	CenterX, CenterY;	// Coordinates for the center of the screen.
+
+								//Initialize the position of the pointer to the middle of the screen
+	CenterX = m_pSystem->GetWindowX() + m_pSystem->GetWindowWidth() / 2;
+	CenterY = m_pSystem->GetWindowY() + m_pSystem->GetWindowHeight() / 2;
+
+	//Calculate the position of the mouse and store it
+	POINT pt;
+	GetCursorPos(&pt);
+	MouseX = pt.x;
+	MouseY = pt.y;
+
+	if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
+	{
+		bool tempH = false;
+		bool tempV = false;
+		float turnH = 0;
+		float turnV = 0;
+		if (MouseX < CenterX)
+		{
+			tempH = true;
+			turnH = fSpeed;
+		}
+		else if (MouseX > CenterX)
+		{
+			tempH = true;
+			turnH = -fSpeed;
+		}
+		if (MouseY < CenterY)
+		{
+			tempV = true;
+			turnV = fSpeed;
+		}
+		else if (MouseY > CenterY)
+		{
+			tempV = true;
+			turnV = -fSpeed;
+		}
+		m_pCamera->Turn(turnH, turnV, tempH, tempV);
+	}
+
 #pragma endregion
 #pragma region ModelOrientation Orientation
 	m_qArcBall = quaternion(vector3(glm::radians(m_pController[m_uActCont]->axis[SimplexAxis_POVY] / 20.0f), 0.0f, 0.0f)) * m_qArcBall;

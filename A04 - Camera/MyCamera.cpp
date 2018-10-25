@@ -1,6 +1,8 @@
 #include "MyCamera.h"
 using namespace Simplex;
-
+float hRotation = 0.0f;
+float vRotation = 0.0f;
+vector3 prevRot = vector3(0.0f);
 //Accessors
 void Simplex::MyCamera::SetPosition(vector3 a_v3Position) { m_v3Position = a_v3Position; }
 vector3 Simplex::MyCamera::GetPosition(void) { return m_v3Position; }
@@ -122,7 +124,6 @@ void Simplex::MyCamera::SetPositionTargetAndUpward(vector3 a_v3Position, vector3
 {
 	m_v3Position = a_v3Position;
 	m_v3Target = a_v3Target;
-
 	m_v3Above = a_v3Position + glm::normalize(a_v3Upward);
 	
 	//Calculate the Matrix
@@ -152,11 +153,58 @@ void Simplex::MyCamera::CalculateProjectionMatrix(void)
 
 void MyCamera::MoveForward(float a_fDistance)
 {
-	//The following is just an example and does not take in account the forward vector (AKA view vector)
+	//Increase in the z direction
 	m_v3Position += vector3(0.0f, 0.0f,-a_fDistance);
 	m_v3Target += vector3(0.0f, 0.0f, -a_fDistance);
 	m_v3Above += vector3(0.0f, 0.0f, -a_fDistance);
 }
 
-void MyCamera::MoveVertical(float a_fDistance){}//Needs to be defined
-void MyCamera::MoveSideways(float a_fDistance){}//Needs to be defined
+//Need to account for view
+void MyCamera::MoveVertical(float a_fDistance)
+{
+	//Increase in the y direction
+	m_v3Position += vector3(0.0f, -a_fDistance, 0.0f);
+	m_v3Target += vector3(0.0f, -a_fDistance, 0.0f);
+	m_v3Above += vector3(0.0f, -a_fDistance, 0.0f);
+}
+
+void MyCamera::MoveSideways(float a_fDistance)
+{
+	//Increase in the x direction
+	m_v3Position += vector3(-a_fDistance, 0.0f, 0.0f);
+	m_v3Target += vector3(-a_fDistance, 0.0f, 0.0f);
+	m_v3Above += vector3(-a_fDistance, 0.0f, 0.0f);
+}
+
+void MyCamera::Turn(float a_fDistance1, float a_fDistance2, bool hBool, bool vBool)
+{
+	//Is the camera being moved
+	if (hBool)
+		hRotation += a_fDistance1;
+	if (vBool)
+		vRotation += a_fDistance2;
+
+	//Find the point on the sphere around the camera to look at
+	m_v3Target.x = m_v3Position.x + 10 * glm::cos(glm::radians(vRotation)) * glm::sin(glm::radians(hRotation));
+	m_v3Target.y = m_v3Position.y + 10 * glm::sin(glm::radians(vRotation)) * glm::sin(glm::radians(hRotation));
+	m_v3Target.z = m_v3Position.z + 10 * glm::cos(glm::radians(hRotation));
+
+	if (m_v3Target != prevRot) //The camera has been rotated
+	{
+		quaternion q = glm::lookAt(m_v3Position, m_v3Target, glm::normalize(m_v3Above - m_v3Position));
+		if (m_v3Target.x != prevRot.x)
+		{
+			q = q * glm::angleAxis(glm::radians(1.0f), vector3(m_v3Target.x - prevRot.x, 0.0f, 0.0f));
+		}
+		if (m_v3Target.y != prevRot.y)
+		{
+			q = q * glm::angleAxis(glm::radians(1.0f), vector3(0.0f, m_v3Target.y - prevRot.y, 0.0f));
+		}
+		if (m_v3Target.z != prevRot.z)
+		{
+			q = q * glm::angleAxis(glm::radians(1.0f), vector3(0.0f, 0.0f, m_v3Target.z - prevRot.z));
+		}
+		m_m4View = toMat4(q);
+		vector3 prevRot = m_v3Target;
+	}
+}

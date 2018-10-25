@@ -230,6 +230,13 @@ public:
 	OUTPUT: ---
 	*/
 	void MoveSideways(float a_fDistance = 0.1f);
+	void Turn(float a_fDistance1, float a_fDistance2, bool hBool, bool vBool);
+	/*
+	USAGE: Turns the camera
+	ARGUMENTS:
+	- a_fDistance1, angle to turn on one axis, a_fDistance2 is the other
+	- hBool and vBool to determine what direction the mouse is being dragged in
+	*/
 };
 
 } //namespace Simplex
