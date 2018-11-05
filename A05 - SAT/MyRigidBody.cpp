@@ -245,6 +245,21 @@ bool MyRigidBody::IsColliding(MyRigidBody* const a_pOther)
 	{
 		this->RemoveCollisionWith(a_pOther);
 		a_pOther->RemoveCollisionWith(this);
+		vector3 planeCenter = (a_pOther->GetCenterGlobal() - GetCenterGlobal()) / 2.0f;
+		if (SAT(a_pOther) == eSATResults::SAT_AX)
+		{
+			m_pMeshMngr->AddPlaneToRenderList(glm::translate(m_m4ToWorld, planeCenter) * glm::scale(vector3(5.0f)), C_RED, RENDER_SOLID);
+		}
+		else if (SAT(a_pOther) == eSATResults::SAT_AY)
+		{
+			vector3 planeCenter = (a_pOther->GetCenterGlobal() - GetCenterGlobal()) / 2.0f;
+			m_pMeshMngr->AddPlaneToRenderList(glm::translate(m_m4ToWorld, planeCenter) * glm::scale(vector3(5.0f)), C_GREEN, RENDER_SOLID);
+		}
+		else if (SAT(a_pOther) == eSATResults::SAT_AZ)
+		{
+			vector3 planeCenter = (a_pOther->GetCenterGlobal() - GetCenterGlobal()) / 2.0f;
+			m_pMeshMngr->AddPlaneToRenderList(glm::translate(m_m4ToWorld, planeCenter) * glm::scale(vector3(5.0f)), C_BLUE, RENDER_SOLID);
+		}
 	}
 
 	return bColliding;
@@ -286,7 +301,19 @@ uint MyRigidBody::SAT(MyRigidBody* const a_pOther)
 	Simplex that might help you [eSATResults] feel free to use it.
 	(eSATResults::SAT_NONE has a value of 0)
 	*/
-
+	if (m_v3MaxG.x <= a_pOther->m_v3MinG.x || m_v3MinG.x >= a_pOther->m_v3MaxG.x)
+	{
+		return eSATResults::SAT_AX;
+	}
+	if (m_v3MaxG.y <= a_pOther->m_v3MinG.y || m_v3MinG.y >= a_pOther->m_v3MaxG.y)
+	{
+		return eSATResults::SAT_AY;
+	}
+	if (m_v3MaxG.z <= a_pOther->m_v3MinG.z || m_v3MinG.z >= a_pOther->m_v3MaxG.z)
+	{
+		return eSATResults::SAT_AZ;
+	}
+	
 	//there is no axis test that separates this two objects
 	return eSATResults::SAT_NONE;
 }

@@ -85,12 +85,27 @@ void MyRigidBody::SetModelMatrix(matrix4 a_m4ModelMatrix)
 	m_m4ToWorld = a_m4ModelMatrix;
 	
 	//your code goes here---------------------
-	m_v3MinG = m_v3MinL;
-	m_v3MaxG = m_v3MaxL;
-	//----------------------------------------
+	
+	vector3 a_pointList[8];
+	a_pointList[0] = vector3(m_v3MinL.x, m_v3MinL.y, m_v3MinL.z);
+	a_pointList[1] = vector3(m_v3MaxL.x, m_v3MinL.y, m_v3MinL.z);
+	a_pointList[2] = vector3(m_v3MaxL.x, m_v3MaxL.y, m_v3MinL.z);
+	a_pointList[3] = vector3(m_v3MinL.x, m_v3MaxL.y, m_v3MinL.z);
 
-	//we calculate the distance between min and max vectors
-	m_v3ARBBSize = m_v3MaxG - m_v3MinG;
+	a_pointList[4] = vector3(m_v3MinL.x, m_v3MinL.y, m_v3MaxL.z);
+	a_pointList[5] = vector3(m_v3MaxL.x, m_v3MinL.y, m_v3MaxL.z);
+	a_pointList[6] = vector3(m_v3MaxL.x, m_v3MaxL.y, m_v3MaxL.z);
+	a_pointList[7] = vector3(m_v3MinL.x, m_v3MaxL.y, m_v3MaxL.z);
+
+	for (uint i = 0; i < 8; i++)
+	{
+		a_pointList[i] = m_m4ToWorld * vector4(a_pointList[i], 1.0f);
+	}
+	//----------------------------------------
+	//Max and min as the first vector of the list
+	m_v3MaxG = m_v3MinG = a_pointList[0];
+
+	//Get the max and min out of the list
 }
 //The big 3
 MyRigidBody::MyRigidBody(std::vector<vector3> a_pointList)
