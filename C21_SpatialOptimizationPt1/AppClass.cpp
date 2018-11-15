@@ -20,6 +20,9 @@ void Application::InitVariables(void)
 	int nSquare = static_cast<int>(std::sqrt(uInstances));
 	uInstances = nSquare * nSquare;
 	uint uIndex = 0;
+	m_pEntityMngr->AddEntity("Minecraft\\Cube.obj");
+	m_pEntityMngr->SetModelMatrix(glm::translate(vector3(50.0f, 0.0f, 0.0f)));
+
 	for (int i = 0; i < nSquare; i++)
 	{
 		for (int j = 0; j < nSquare; j++)
@@ -28,27 +31,13 @@ void Application::InitVariables(void)
 			vector3 v3Position = vector3(glm::sphericalRand(34.0f));
 			matrix4 m4Position = glm::translate(v3Position);
 			m_pEntityMngr->SetModelMatrix(m4Position);
-			//m_pEntityMngr->AddDimension(-1, uIndex);
-			//++uIndex;
-			
-			if (v3Position.x < 0.0f)
-			{
-				if (v3Position.x < -17.0f)
-					m_pEntityMngr->AddDimension(-1, 1);
-				else
-					m_pEntityMngr->AddDimension(-1, 2);
-			}
-			else if (v3Position.x > 0.0f)
-			{
-				if (v3Position.x > 17.0f)
-					m_pEntityMngr->AddDimension(-1, 3);
-				else
-					m_pEntityMngr->AddDimension(-1, 4);
-			}
-			
+			m_pEntityMngr->AddDimension(-1, uIndex);
+			uIndex++;
 		}
 	}
 	m_pEntityMngr->Update();
+	m_pRoot = new MyOctant();
+	//m_pRoot = new MyOctant(vector3(10.0f, 10.0f, 10.0f), 50.0f);
 	//steve
 	//m_pEntityMngr->AddEntity("Minecraft\\Steve.obj", "Steve");
 }
@@ -66,12 +55,12 @@ void Application::Update(void)
 	//Update Entity Manager
 	m_pEntityMngr->Update();
 
-	m_pMeshMngr->AddGridToRenderList(glm::rotate(IDENTITY_M4, 1.5708f, AXIS_Y));
+	/*m_pMeshMngr->AddGridToRenderList(glm::rotate(IDENTITY_M4, 1.5708f, AXIS_Y));
 	m_pMeshMngr->AddGridToRenderList(glm::translate(vector3(-17.0f, 0.0f, 0.0f)) * glm::rotate(IDENTITY_M4, 1.5708f, AXIS_Y));
-	m_pMeshMngr->AddGridToRenderList(glm::translate(vector3(17.0f, 0.0f, 0.0f)) * glm::rotate(IDENTITY_M4, 1.5708f, AXIS_Y));
-		
+	m_pMeshMngr->AddGridToRenderList(glm::translate(vector3(17.0f, 0.0f, 0.0f)) * glm::rotate(IDENTITY_M4, 1.5708f, AXIS_Y));*/
 	//Add objects to render list
 	m_pEntityMngr->AddEntityToRenderList(-1, true);
+	m_pRoot->Display();
 }
 void Application::Display(void)
 {
@@ -95,6 +84,7 @@ void Application::Display(void)
 }
 void Application::Release(void)
 {
+	SafeDelete(m_pRoot);
 	//release GUI
 	ShutdownGUI();
 }
