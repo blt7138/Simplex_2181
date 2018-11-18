@@ -6,14 +6,83 @@ uint MyOctreeClass::m_uIdealEntityCount = 5;
 
 MyOctreeClass::MyOctreeClass(uint a_nMaxLevel, uint a_nIdealEntityCount)
 {
+	Init();
+
+	m_uOctantCount = 0;
+	m_uMaxLevel = a_nMaxLevel;
+	m_uIdealEntityCount = a_nIdealEntityCount;
+	m_uID = m_uOctantCount;
+
+	m_pRoot = this;
+	m_lChild.clear();
+
+	std::vector<vector3> lMinMax;
+
+	uint nObjects = m_pEntityMngr->GetEntityCount();
+	for (uint i = 0; i < nObjects; i++)
+	{
+		Entity* pEntity = m_pEntityMngr->GetEntity();
+		RigidBody* pRigidBody = pEntity->GetRigidBody();
+		lMinMax.push_back(pRigidBody->GetMinGlobal());
+		lMinMax.push_back(pRigidBody->GetMaxGlobal());
+	}
+	RigidBody* pRigidBody = new RigidBody(lMinMax);
+
+	vector3 vHalfWidth = pRigidBody->GetHalfWidth();
+	float fMax = vHalfWidth.x;
+	for (int i = 1; i < 3; i++)
+	{
+		if (fMax < vHalfWidth[i])
+			fMax = vHalfWidth[i];
+	}
+	vector3 v3Center = pRigidBody->GetCenterLocal();
+	lMinMax.clear();
+	SafeDelete(pRigidBody);
+
+	m_fSize = fMax * 2.0f;
+	m_v3Center = v3Center;
+	m_v3Min = m_v3Center - (vector3(fMax));
+	m_v3Max = m_v3Center + (vector3(fMax));
+
+	m_uOctantCount++;
+	
+	ConstructTree(m_uMaxLevel);
 }
 
 MyOctreeClass::MyOctreeClass(vector3 a_v3Center, float a_fSize)
 {
+	Init();
+	m_v3Center = a_v3Center;
+	m_fSize = a_fSize;
+
+	m_v3Min = m_v3Center - (vector3(m_fSize) / 2.0f);
+	m_v3Max = m_v3Center + (vector3(m_fSize) / 2.0f);
+
+	m_uOctantCount++;
 }
 
-MyOctreeClass::MyOctreeClass(MyOctreeClass const & other)
+MyOctreeClass::MyOctreeClass(MyOctreeClass const& other)
 {
+	m_uChildren = other.m_uChildren;
+	m_v3Center = other.m_v3Center;
+	m_v3Min = other.m_v3Min;
+	m_v3Max = other.m_v3Max;
+
+	m_fSize = other.m_fSize;
+	m_uID = other.m_uID;
+	m_uLevel = other.m_uLevel;
+	m_pParent = other.m_pParent;
+
+	m_pRoot, other.m_pRoot;
+	m_lChild, other.m_lChild;
+
+	m_pMeshMngr = MeshManager::GetInstance();
+	m_pEntityMngr = EntityManager::GetInstance();
+
+	for (uint i = 0; i < 8; i++)
+	{
+		m_pChild[i] = other.m_pChild[i];
+	}
 }
 
 void MyOctreeClass::Init()
@@ -120,14 +189,38 @@ bool MyOctreeClass::IsColliding(uint a_uRBIndex)
 
 void MyOctreeClass::Display(uint a_nIndex, vector3 a_v3Color)
 {
+	if (m_uID == a_nIndex)
+	{
+		m_pMeshMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center) *
+			glm::scale(vector3(m_fSize)), a_v3Color, RENDER_WIRE);
+
+		return;
+	}
+	for (uint nIndex = 0; nIndex < m_uChildren; nIndex++)
+	{
+		m_pChild[nIndex]->Display(a_nIndex);
+	}
 }
 
 void MyOctreeClass::Display(vector3 a_v3Color)
 {
+	for (uint nIndex = 0; nIndex < m_uChildren; nIndex++)
+	{
+		m_pChild[nIndex]->Display(a_v3Color);
+	}
+	m_pMeshMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center) *
+		glm::scale(vector3(m_fSize)), a_v3Color, RENDER_WIRE);
 }
 
 void MyOctreeClass::DisplayLeafs(vector3 a_v3Color)
 {
+	uint nLeafs = m_lChild.size();
+	for (uint nChild = 0; nChild < nLeafs; nChild++)
+	{
+		m_lChild[nChild]->DisplayLeafs(a_v3Color);
+	}
+	m_pMeshMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center) *
+		glm::scale(vector3(m_fSize)), a_v3Color, RENDER_WIRE);
 }
 
 void MyOctreeClass::ClearEntityList(void)
@@ -141,6 +234,55 @@ void MyOctreeClass::ClearEntityList(void)
 
 void MyOctreeClass::Subdivide(void)
 {
+	if (m_uLevel >= m_uMaxLevel)
+		return;
+
+	if (m_uChildren != 0)
+		return;
+
+	m_uChildren = 8;
+
+	float fSize = m_fSize / 4.0f;
+	float fSizeD = fSize * 2.0f;
+	vector3 v3Center;
+
+	v3Center = m_v3Center;
+	v3Center.x -= fSize;
+	v3Center.y -= fSize;
+	v3Center.z -= fSize;
+	m_pChild[0] = new MyOctreeClass(v3Center, fSizeD);
+
+	v3Center.x += fSizeD;
+	m_pChild[1] = new MyOctreeClass(v3Center, fSizeD);
+
+	v3Center.z += fSizeD;
+	m_pChild[2] = new MyOctreeClass(v3Center, fSizeD);
+
+	v3Center.x -= fSizeD;
+	m_pChild[3] = new MyOctreeClass(v3Center, fSizeD);
+
+	v3Center.y += fSizeD;
+	m_pChild[4] = new MyOctreeClass(v3Center, fSizeD);
+
+	v3Center.z -= fSizeD;
+	m_pChild[5] = new MyOctreeClass(v3Center, fSizeD);
+
+	v3Center.x += fSizeD;
+	m_pChild[6] = new MyOctreeClass(v3Center, fSizeD);
+
+	v3Center.z += fSizeD;
+	m_pChild[7] = new MyOctreeClass(v3Center, fSizeD);
+
+	for (uint nIndex = 0; nIndex < 8; nIndex++)
+	{
+		m_pChild[nIndex]->m_pRoot = m_pRoot;
+		m_pChild[nIndex]->m_pParent = this;
+		m_pChild[nIndex]->m_uLevel = m_uLevel + 1;
+		if (m_pChild[nIndex]->ContainsMoreThan(m_uIdealEntityCount))
+		{
+			m_pChild[nIndex]->Subdivide();
+		}
+	}
 }
 
 MyOctreeClass * MyOctreeClass::GetChild(uint a_nChild)
