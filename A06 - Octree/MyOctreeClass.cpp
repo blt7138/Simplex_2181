@@ -6,6 +6,7 @@ uint MyOctreeClass::m_uIdealEntityCount = 5;
 
 MyOctreeClass::MyOctreeClass(uint a_nMaxLevel, uint a_nIdealEntityCount)
 {
+	//Set values
 	Init();
 
 	m_uOctantCount = 0;
@@ -17,16 +18,17 @@ MyOctreeClass::MyOctreeClass(uint a_nMaxLevel, uint a_nIdealEntityCount)
 	m_lChild.clear();
 
 	std::vector<vector3> lMinMax;
-
+	//Get the max and min of each entity in the scene
 	uint nObjects = m_pEntityMngr->GetEntityCount();
 	for (uint i = 0; i < nObjects; i++)
 	{
-		Entity* pEntity = m_pEntityMngr->GetEntity();
-		RigidBody* pRigidBody = pEntity->GetRigidBody();
+		MyEntity* pEntity = m_pEntityMngr->GetEntity(i);
+		MyRigidBody* pRigidBody = pEntity->GetRigidBody();
 		lMinMax.push_back(pRigidBody->GetMinGlobal());
 		lMinMax.push_back(pRigidBody->GetMaxGlobal());
 	}
-	RigidBody* pRigidBody = new RigidBody(lMinMax);
+	//Create a box based on the entities inside of it
+	MyRigidBody* pRigidBody = new MyRigidBody(lMinMax);
 
 	vector3 vHalfWidth = pRigidBody->GetHalfWidth();
 	float fMax = vHalfWidth.x;
@@ -35,10 +37,11 @@ MyOctreeClass::MyOctreeClass(uint a_nMaxLevel, uint a_nIdealEntityCount)
 		if (fMax < vHalfWidth[i])
 			fMax = vHalfWidth[i];
 	}
-	vector3 v3Center = pRigidBody->GetCenterLocal();
+	vector3 v3Center = pRigidBody->GetCenterGlobal();
 	lMinMax.clear();
 	SafeDelete(pRigidBody);
 
+	//Set the dimensions of the box
 	m_fSize = fMax * 2.0f;
 	m_v3Center = v3Center;
 	m_v3Min = m_v3Center - (vector3(fMax));
@@ -51,7 +54,9 @@ MyOctreeClass::MyOctreeClass(uint a_nMaxLevel, uint a_nIdealEntityCount)
 
 MyOctreeClass::MyOctreeClass(vector3 a_v3Center, float a_fSize)
 {
+	//Set values
 	Init();
+	//Set the dimensions of the box
 	m_v3Center = a_v3Center;
 	m_fSize = a_fSize;
 
@@ -77,7 +82,7 @@ MyOctreeClass::MyOctreeClass(MyOctreeClass const& other)
 	m_lChild, other.m_lChild;
 
 	m_pMeshMngr = MeshManager::GetInstance();
-	m_pEntityMngr = EntityManager::GetInstance();
+	m_pEntityMngr = MyEntityManager::GetInstance();
 
 	for (uint i = 0; i < 8; i++)
 	{
@@ -99,7 +104,7 @@ void MyOctreeClass::Init()
 	m_v3Max = vector3(0.0f);
 
 	m_pMeshMngr = MeshManager::GetInstance();
-	m_pEntityMngr = EntityManager::GetInstance();
+	m_pEntityMngr = MyEntityManager::GetInstance();
 
 	m_pRoot = nullptr;
 	m_pParent = nullptr;
@@ -152,7 +157,7 @@ void MyOctreeClass::Swap(MyOctreeClass & other)
 	std::swap(m_v3Max, other.m_v3Max);
 
 	m_pMeshMngr = MeshManager::GetInstance();
-	m_pEntityMngr = EntityManager::GetInstance();
+	m_pEntityMngr = MyEntityManager::GetInstance();
 
 	std::swap(m_uLevel, other.m_uLevel);
 	std::swap(m_pParent, other.m_pParent);
@@ -184,14 +189,16 @@ vector3 MyOctreeClass::GetMaxGlobal(void)
 
 bool MyOctreeClass::IsColliding(uint a_uRBIndex)
 {
+	//Find the entity and rigid body of the given index in the scene
 	uint nObjectCount = m_pEntityMngr->GetEntityCount();
 	if (a_uRBIndex >= nObjectCount)
 		return false;
-	Entity* pEntity = m_pEntityMngr->GetEntity(a_uRBIndex);
-	RigidBody* pRigidBody = pEntity->GetRigidBody();
+	MyEntity* pEntity = m_pEntityMngr->GetEntity(a_uRBIndex);
+	MyRigidBody* pRigidBody = pEntity->GetRigidBody();
 	vector3 v3MinO = pRigidBody->GetMinGlobal();
 	vector3 v3MaxO = pRigidBody->GetMaxGlobal();
 
+	//Compare the max and mins of the boxes to determine if they overlap and therefore there is a collision
 	if (m_v3Max.x < v3MinO.x)
 		return false;
 	if (m_v3Min.x > v3MaxO.x)
@@ -257,18 +264,20 @@ void MyOctreeClass::ClearEntityList(void)
 
 void MyOctreeClass::Subdivide(void)
 {
-	if (m_uLevel >= m_uMaxLevel)
+	if (m_uLevel >= m_uMaxLevel) //Nothing to subdivide
 		return;
 
-	if (m_uChildren != 0)
+	if (m_uChildren != 0) //No children to subdivide into
 		return;
 
 	m_uChildren = 8;
 
+	//Set the subdivided size
 	float fSize = m_fSize / 4.0f;
 	float fSizeD = fSize * 2.0f;
 	vector3 v3Center;
 
+	//Position each octant relative to the center of the current octant
 	v3Center = m_v3Center;
 	v3Center.x -= fSize;
 	v3Center.y -= fSize;
@@ -301,7 +310,7 @@ void MyOctreeClass::Subdivide(void)
 		m_pChild[nIndex]->m_pRoot = m_pRoot;
 		m_pChild[nIndex]->m_pParent = this;
 		m_pChild[nIndex]->m_uLevel = m_uLevel + 1;
-		if (m_pChild[nIndex]->ContainsMoreThan(m_uIdealEntityCount))
+		if (m_pChild[nIndex]->ContainsMoreThan(m_uIdealEntityCount)) //Too many entities inside it, keep subdividing
 		{
 			m_pChild[nIndex]->Subdivide();
 		}
@@ -330,7 +339,7 @@ bool MyOctreeClass::ContainsMoreThan(uint a_nEntities)
 	uint nObjectCount = m_pEntityMngr->GetEntityCount();
 	for (uint n = 0; n < nObjectCount; n++)
 	{
-		if (IsColliding(n))
+		if (IsColliding(n)) //The current octant will collide with the entities if they are inside it
 			nCount++;
 		if (nCount > a_nEntities)
 			return true;
@@ -342,7 +351,7 @@ void MyOctreeClass::KillBranches(void)
 {
 	for (uint nIndex = 0; nIndex < m_uChildren; nIndex++)
 	{
-		m_pChild[nIndex]->KillBranches();
+		m_pChild[nIndex]->KillBranches(); //Kill all of the branches of all of the children until they have no more children as well
 		delete m_pChild[nIndex];
 		m_pChild[nIndex] = nullptr;
 	}
@@ -392,7 +401,7 @@ void MyOctreeClass::AssignIDtoEntity(void)
 	{
 		m_pChild[nChild]->AssignIDtoEntity();
 	}
-	if (m_uChildren == 0)
+	if (m_uChildren == 0) //Finally reached an octant with no children
 	{
 		uint nEntities = m_pEntityMngr->GetEntityCount();
 		for (uint nIndex = 0; nIndex < nEntities; nIndex++)
@@ -400,7 +409,7 @@ void MyOctreeClass::AssignIDtoEntity(void)
 			if (IsColliding(nIndex))
 			{
 				m_EntityList.push_back(nIndex);
-				m_pEntityMngr->AddDimension(nIndex, m_uID);
+				m_pEntityMngr->AddDimension(nIndex, m_uID); //The entity exists in the same dimension as the current octant being checked
 			}
 		}
 	}
