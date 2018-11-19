@@ -184,7 +184,30 @@ vector3 MyOctreeClass::GetMaxGlobal(void)
 
 bool MyOctreeClass::IsColliding(uint a_uRBIndex)
 {
+	uint nObjectCount = m_pEntityMngr->GetEntityCount();
+	if (a_uRBIndex >= nObjectCount)
+		return false;
+	Entity* pEntity = m_pEntityMngr->GetEntity(a_uRBIndex);
+	RigidBody* pRigidBody = pEntity->GetRigidBody();
+	vector3 v3MinO = pRigidBody->GetMinGlobal();
+	vector3 v3MaxO = pRigidBody->GetMaxGlobal();
+
+	if (m_v3Max.x < v3MinO.x)
+		return false;
+	if (m_v3Min.x > v3MaxO.x)
+		return false;
+
+	if (m_v3Max.y < v3MinO.y)
+		return false;
+	if (m_v3Min.y > v3MaxO.y)
+		return false;
+
+	if (m_v3Max.z < v3MinO.z)
+		return false;
+	if (m_v3Min.z > v3MaxO.z)
 	return false;
+
+	return true;
 }
 
 void MyOctreeClass::Display(uint a_nIndex, vector3 a_v3Color)
